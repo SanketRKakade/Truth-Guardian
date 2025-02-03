@@ -3,8 +3,6 @@
 # --------------------------
 import numpy as np
 import requests
-from transformers import AutoTokenizer, TFAutoModelForSequenceClassification, pipeline
-from sentence_transformers import SentenceTransformer
 from fastapi import FastAPI
 from pydantic import BaseModel
 from config import Config
@@ -19,7 +17,18 @@ import google.generativeai as genai
 import threading
 import os
 from bson import ObjectId
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+import tensorflow as tf
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
+
 
 
 # --------------------------
@@ -62,6 +71,7 @@ class GeminiVerifier:
         for item in evidence:
             prompt += f"Source: {item['url']} - {item['title']}\nSnippet: {item['snippet']}\nFull Content: {item['content']}\n\n"
         
+        prompt+= """ You may also cross check around"""
         response = self.model.generate_content(prompt)
         return {
             "response": response.text
@@ -163,4 +173,3 @@ async def check_claim(request: ClaimRequest):
         "gemini_verification": gemini_response["response"],
         "evidence": evidence
     }
-
